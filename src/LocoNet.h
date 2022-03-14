@@ -76,9 +76,9 @@
 #include "WProgram.h"
 #endif
 
-#include "utility/ln_buf.h"
-#include "utility/ln_opc.h"
-#include "utility/utils.h"
+#include "ln_buf.h"
+#include "ln_opc.h"
+#include "utils.h"
 
 typedef enum
 {

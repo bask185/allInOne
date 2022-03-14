@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <Servo.h>
+#include "ServoTimer2.h"
 
 class ServoSweep {
 
@@ -13,7 +13,7 @@ public:
     void begin( );
 
 private:
-    Servo servo ;
+    ServoTimer2 servo ;
     unsigned long timeToRun ;
     uint8_t pos ;
     uint8_t state ;

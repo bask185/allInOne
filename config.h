@@ -1,11 +1,11 @@
-#define X_NET
-// #define L_NET
+// #define X_NET
+#define L_NET
 // #define DCC
 
 // #define SERVO
-// #define MOSFET
+#define MOSFET
 // #define RELAY
-#define OCCUPANCY
+// #define OCCUPANCY
 // #define SIGNAL
 // #define CONTROL_PANEL
 // #define LED_DRIVER

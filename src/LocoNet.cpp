@@ -68,7 +68,7 @@
 
 #include "LocoNet.h"
 
-#ifdef LNET 
+#ifdef L_NET 
 
 #include "ln_sw_uart.h"
 #include "ln_config.h"
