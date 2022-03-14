@@ -19,7 +19,7 @@ Debounce    configBtn( configPin ) ;
 
 #elif defined L_NET
     #include "src/LocoNet.h"
-    const int LNtxPin = 1 ;  
+    const int LNtxPin = 0 ;  
     lnMsg  *LnPacket;          // pointer to a received LNet packet  
 
 #elif defined DCC
