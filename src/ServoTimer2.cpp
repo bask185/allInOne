@@ -26,47 +26,47 @@ ISR (TIMER2_OVF_vect)
   ++ISRCount; // increment the overlflow counter
   if (ISRCount ==  servos[Channel].counter ) // are we on the final iteration for this channel
   {
-	TCNT2 =  servos[Channel].remainder;   // yes, set count for overflow after remainder ticks
+    TCNT2 =  servos[Channel].remainder;   // yes, set count for overflow after remainder ticks
   }  
   else if(ISRCount >  servos[Channel].counter)  
   {
-	// we have finished timing the channel so pulse it low and move on
-	if(servos[Channel].Pin.isActive == true)	     // check if activated
-	    digitalWrite( servos[Channel].Pin.nbr,LOW); // pulse this channel low if active   
+    // we have finished timing the channel so pulse it low and move on
+    if(servos[Channel].Pin.isActive == true)	     // check if activated
+        digitalWrite( servos[Channel].Pin.nbr,LOW); // pulse this channel low if active   
 
-	  Channel++;    // increment to the next channel
-	ISRCount = 0; // reset the isr iteration counter 
-	TCNT2 = 0;    // reset the clock counter register
-	if( (Channel != FRAME_SYNC_INDEX) && (Channel <= NBR_CHANNELS) ){	     // check if we need to pulse this channel    
-	    if(servos[Channel].Pin.isActive == true)	   // check if activated
-		 digitalWrite( servos[Channel].Pin.nbr,HIGH); // its an active channel so pulse it high   
-	}
-	else if(Channel > NBR_CHANNELS){ 
-	   Channel = 0; // all done so start over		   
-	} 
+      Channel++;    // increment to the next channel
+    ISRCount = 0; // reset the isr iteration counter 
+    TCNT2 = 0;    // reset the clock counter register
+    if( (Channel != FRAME_SYNC_INDEX) && (Channel <= NBR_CHANNELS) ){	     // check if we need to pulse this channel    
+        if(servos[Channel].Pin.isActive == true)	   // check if activated
+         digitalWrite( servos[Channel].Pin.nbr,HIGH); // its an active channel so pulse it high   
+    }
+    else if(Channel > NBR_CHANNELS){ 
+       Channel = 0; // all done so start over		   
+    } 
    }  
 }
 
 ServoTimer2::ServoTimer2()
 {
    if( ChannelCount < NBR_CHANNELS)  
-	this->chanIndex = ++ChannelCount;  // assign a channel number to this instance
+    this->chanIndex = ++ChannelCount;  // assign a channel number to this instance
    else
-	this->chanIndex = 0;  // todo	// too many channels, assigning 0 inhibits this instance from functioning 
+    this->chanIndex = 0;  // todo	// too many channels, assigning 0 inhibits this instance from functioning 
 }
 
 uint8_t ServoTimer2::attach(int pin)
 {
-	if( isStarted == false)
-	 initISR();    
-	if(this->chanIndex > 0)  
-	{
-	 //debug("attaching chan = ", chanIndex);
-	 pinMode( pin, OUTPUT) ;  // set servo pin to output
-	 servos[this->chanIndex].Pin.nbr = pin;  
-	 servos[this->chanIndex].Pin.isActive = true;  
-	} 
-	return this->chanIndex ;
+    if( isStarted == false)
+     initISR();    
+    if(this->chanIndex > 0)  
+    {
+     //debug("attaching chan = ", chanIndex);
+     pinMode( pin, OUTPUT) ;  // set servo pin to output
+     servos[this->chanIndex].Pin.nbr = pin;  
+     servos[this->chanIndex].Pin.isActive = true;  
+    } 
+    return this->chanIndex ;
 }
 
 void ServoTimer2::detach()  
@@ -83,9 +83,9 @@ int ServoTimer2::read()
 {
   unsigned int pulsewidth;
    if( this->chanIndex > 0)
-	pulsewidth =  servos[this->chanIndex].counter * 128 + ((255 - servos[this->chanIndex].remainder) / 2) + DELAY_ADJUST ;
+    pulsewidth =  servos[this->chanIndex].counter * 128 + ((255 - servos[this->chanIndex].remainder) / 2) + DELAY_ADJUST ;
    else 
-	 pulsewidth  = 0;
+     pulsewidth  = 0;
    return pulsewidth;   
 }
  
@@ -99,36 +99,36 @@ static void writeChan(uint8_t chan, int pulsewidth)
    // calculate and store the values for the given channel
    if( (chan > 0) && (chan <= NBR_CHANNELS) )   // ensure channel is valid
    { 
-	if( pulsewidth < MIN_PULSE_WIDTH )		    // ensure pulse width is valid
-	    pulsewidth = MIN_PULSE_WIDTH;
-	else if( pulsewidth > MAX_PULSE_WIDTH )
-	    pulsewidth = MAX_PULSE_WIDTH;	 
-	
-	  pulsewidth -=DELAY_ADJUST;			 // subtract the time it takes to process the start and end pulses (mostly from digitalWrite) 
-	servos[chan].counter = pulsewidth / 128;	
-	servos[chan].remainder = 255 - (2 * (pulsewidth - ( servos[chan].counter * 128)));  // the number of 0.5us ticks for timer overflow	   
+    if( pulsewidth < MIN_PULSE_WIDTH )		    // ensure pulse width is valid
+        pulsewidth = MIN_PULSE_WIDTH;
+    else if( pulsewidth > MAX_PULSE_WIDTH )
+             pulsewidth = MAX_PULSE_WIDTH;	 
+    
+      pulsewidth -=DELAY_ADJUST;			 // subtract the time it takes to process the start and end pulses (mostly from digitalWrite) 
+    servos[chan].counter = pulsewidth / 128;	
+    servos[chan].remainder = 255 - (2 * (pulsewidth - ( servos[chan].counter * 128)));  // the number of 0.5us ticks for timer overflow	   
    }
 }
 
 static void initISR()
 {   
-	//for(uint8_t i=1; i <= NBR_CHANNELS; i++) {  // channels start from 1    
-	//   writeChan(i, DEFAULT_PULSE_WIDTH);  // store default values	    
-	//}
-	servos[FRAME_SYNC_INDEX].counter = FRAME_SYNC_DELAY;   // store the frame sync period	 
+    //for(uint8_t i=1; i <= NBR_CHANNELS; i++) {  // channels start from 1    
+    //   writeChan(i, DEFAULT_PULSE_WIDTH);  // store default values	    
+    //}
+    servos[FRAME_SYNC_INDEX].counter = FRAME_SYNC_DELAY;   // store the frame sync period	 
 
-	Channel = 0;  // clear the channel index  
-	ISRCount = 0;  // clear the value of the ISR counter;
-	
-	/* setup for timer 2 */
-	TIMSK2 = 0;  // disable interrupts 
-	TCCR2A = 0;  // normal counting mode 
-	TCCR2B = _BV(CS21); // set prescaler of 8 
-	TCNT2 = 0;     // clear the timer2 count 
-	TIFR2 = _BV(TOV2);  // clear pending interrupts; 
-	TIMSK2 =  _BV(TOIE2) ; // enable the overflow interrupt	  
-	  
-	isStarted = true;  // flag to indicate this initialisation code has been executed
+    Channel = 0;  // clear the channel index  
+    ISRCount = 0;  // clear the value of the ISR counter;
+    
+    /* setup for timer 2 */
+    TIMSK2 = 0;  // disable interrupts 
+    TCCR2A = 0;  // normal counting mode 
+    TCCR2B = _BV(CS21); // set prescaler of 8 
+    TCNT2 = 0;     // clear the timer2 count 
+    TIFR2 = _BV(TOV2);  // clear pending interrupts; 
+    TIMSK2 =  _BV(TOIE2) ; // enable the overflow interrupt	  
+      
+    isStarted = true;  // flag to indicate this initialisation code has been executed
 } 
 
  

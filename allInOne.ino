@@ -8,7 +8,7 @@
 const int   ADDRESS = 0x00 ;                                                    // address in EEPROM for 'myAddress'
 uint16      myAddress ;                                                         // STORED IN EEPROM
 const int   configPin = A5 ;                                                    // in all variants this pin is used to configure address
-bool        configuringAddress ;
+bool        getAddress ;
 Debounce    configBtn( configPin ) ;
 
 /******* INTERFACE *******/
@@ -105,9 +105,35 @@ Debounce    configBtn( configPin ) ;
 
 
 /********* CONTROL OUTPUTS (interface abstract) ************/
+
+void sendOPC_SW_REQ(int address, byte dir, byte on)
+{
+#ifdef L_NET
+    lnMsg SendPacket ;
+    
+    int sw2 = 0x00 ;
+    if (dir) sw2 |= B00100000 ;
+    if (on)  sw2 |= B00010000 ;
+    sw2 |= (address >> 7) & 0x0F ;
+    
+    SendPacket.data[ 0 ] = OPC_SW_REQ ;
+    SendPacket.data[ 1 ] = address & 0x7F ;
+    SendPacket.data[ 2 ] = sw2 ;
+    
+    LocoNet.send( &SendPacket );
+#endif
+}
+
+void setLNTurnout(int address, byte dir)
+{
+    sendOPC_SW_REQ( address - 1, dir, 1 ) ;
+    sendOPC_SW_REQ( address - 1, dir, 0 ) ;
+}
+
+
 void storeNewAddress( uint16 _address )
 {
-    configuringAddress = false ;
+    getAddress = false ;
     myAddress = _address ;
     EEPROM.put( ADDRESS, myAddress ) ;
 }
@@ -137,15 +163,14 @@ void setOutput( uint16 Address, uint8 state )
 
 
 
-
 /********* CALL BACK FUNCTIONS *********/
 // Xnet
 void notifyXNetTrnt( uint16 Address, uint8 data )
 {
     if( bitRead( data, 3 ) == 1 )
     {
-        if( configuringAddress ) storeNewAddress( Address ) ;
-        else                     setOutput( Address, data & 1 ) ;
+        if( getAddress ) storeNewAddress( Address ) ;
+        else             setOutput( Address, data & 1 ) ;
     }
 }
 
@@ -154,8 +179,8 @@ void notifySwitchRequest( uint16_t Address, uint8_t Output, uint8_t Direction )
 {
     if( Output == 1 )
     {
-        if( configuringAddress ) storeNewAddress( Address ) ;
-        else                     setOutput( Address, Direction ) ;
+        if( getAddress ) storeNewAddress( Address ) ;
+        else             setOutput( Address, Direction ) ;
     }
 }
 
@@ -164,8 +189,8 @@ void notifyDccAccTurnoutOutput ( uint16 Addr, uint8 Direction, uint8 OutputPower
 {
     if( OutputPower == 1 )
     {
-        if( configuringAddress ) storeNewAddress( Addr ) ;
-        else                     setOutput( Addr, Direction ) ;
+        if( getAddress ) storeNewAddress( Addr ) ;
+        else             setOutput( Addr, Direction ) ;
     }
 }
 
@@ -184,7 +209,7 @@ void sendState( uint8 IO, uint8 state )
     // Lnet.sendFeedback() ;                                                    // to be filled in (check for difference in turnout command or OCCUPANCY info)
 
     #elif defined CONTROL_PANEL
-    // Lnet.setTrntPos() ;  // to be filled in
+    setLNTurnout( myAddress + IO, state )
 
     #endif
 #endif
@@ -219,24 +244,22 @@ void loop()
     {
         configBtn.debounce() ;
     } END_REPEAT
-    if( configBtn.getState() == FALLING ) { configuringAddress = true ; }
+    
+    if( configBtn.getState() == FALLING ) { getAddress = true ; }
+
 
 /******* INTERFACE HANDLING *******/
-
-// Xnet
-#if defined X_NET
+#if defined X_NET                                                               // Xnet
     Xnet.update() ;
 
-// Lnet
-#elif defined L_NET
+#elif defined L_NET                                                             // Lnet
     LnPacket = LocoNet.receive() ;
     if( LnPacket )
     {   
         LocoNet.processSwitchSensorMessage( LnPacket ) ;
     }
 
-// DCC
-#elif defined DCC
+#elif defined DCC                                                               // DCC
     dcc.process() ;
 
 #endif
